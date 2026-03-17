@@ -1,17 +1,7 @@
-
-#Creating Groups in Active Directory using PowerShell [San Diego OU]
-Get-Module -ListAvailable ActiveDirectory
-
-# Loads AD commands into PS
-Import-Module ActiveDirectory
-
-#Finding the Domain Path
-Get-ADDomain  #<DC=Adatum,DC=com>
-
-New-ADOrganizationalUnit -Name "San Diego" -Path "DC=Adatum,DC=com"  #<creates the OU , names is San Diego and the path is the domain path>
+#Creating Groups | Adding Users to Groups | Removing Users from Groups
 
 #Verify the OU was created
-Get-ADOrganizationalUnit -Filter 'Name -eq "San Diego"'  #<filters the OUs to find the one named San Diego>
+Get-ADOrganizationalUnit -Filter * | Select Name, #DistinguishedName (add to see location)  #<filters all OUs and displays their names>
 
 #Creates a global group named San Diego Admins in the San Diego OU
 New-ADGroup -Name "San Diego Admins" -GroupScope Global -Path "OU=San Diego,DC=Adatum,DC=com"  #<creates a global group named San Diego Admins in the San Diego OU>
