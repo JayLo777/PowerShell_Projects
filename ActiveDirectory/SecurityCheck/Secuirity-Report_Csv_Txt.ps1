@@ -1,43 +1,45 @@
-#Snapshot of security posture of Active Directory environment (privileged accounts, domain controllers, firewalls, etc.
+#Security Check Report Script Txt and CSV Output
 
+#-----Routine Admin Accounts Check-----#
 $TimeStamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
-$ReportFolder = "C:\SecurityCheckReports"
-$ReportPath = "$ReportFolder\SecurityCheckReport_$TimeStamp.csv"
+$ReportFolder = ".\SecurityCheckReports"
+$SvrRptTxt = "$ReportFolder\SecurityCheckReport_$TimeStamp.txt"
+$SvrRptCsv = "$ReportFolder\SecurityCheckReport_$TimeStamp.csv"
 $Results = @()
 
-#Privileged Accounts Check
-
-if (-not (Test-Path $ReportFolder)) {
+#Creates the report folder if it doesn't exist
+$ReportFolder = ".\SecurityCheckReports"
+if (-not (Test-Path $ReportFolder)) {     
     New-Item -Path $ReportFolder -ItemType Directory -Force | Out-Null
 }
 
+#*Checks Priviliged Accounts
 try {
-    if (Get-Command Get-ADGroupMember -ErrorAction SilentlyContinue) {
-        $Admins = Get-ADGroupMember -Identity "Domain Admins" -ErrorAction Stop
-        $Type = "Domain Admins"
+    $Admins = Get-LocalGroupMember -Group "Administrators" -ErrorAction Stop
+    $AdminCount = $Admins.Count
+    $AdminNames = $Admins.Name -Join ', '
+
+    if ($AdminCount -le 2) {
+        $Status= "PASS"
     }
     else {
-        $Admins = Get-LocalGroupMember -Group "Administrators" -ErrorAction Stop
-        $Type = "Local Administrators"
+        $Status = "WARNING"
     }
 
-    $AdminCount = ($Admins | Measure-Object).Count
-
-    $Results += [PSCustomObject]@{
-        Check   = "Privileged Accounts - $Type"
-        Status  = "PASS"
-        Details = "$AdminCount privileged accounts found."
+$Results += [PSCustomObject]@{
+        Check   = "Privileged Accounts - Local Administrators"
+        Status  = $Status
+        Details = "$AdminCount privileged accounts found: $AdminNames"
     }
 }
 catch {
     $Results += [PSCustomObject]@{
-        Check   = "Privileged Accounts - Domain Admins"
+        Check   = "Privileged Accounts - Local Administrators"
         Status  = "FAIL"
         Details = "Could not retrieve privileged accounts"
     }
 }
 
-# -----
 
 #Firewall Checks
 try {
@@ -102,14 +104,14 @@ try {
     if ($Defender.AntivirusEnabled -and $Defender.RealTimeProtectionEnabled) {
         $Results += [PSCustomObject]@{
             Check = "Windows Defender Status"
-            Status = "PASS"
+            Status = "PASS" 
             Details = "Windows Defender is enabled and real-time protection is active"
         }
     } 
     else {
         $Results += [PSCustomObject]@{
             Check = "Windows Defender Status"
-            Status = "WARNING"
+            Status = "WARNING" 
             Details = "Windows Defender is either disabled or real-time protection is not active"
         }
     }
@@ -117,7 +119,7 @@ try {
 catch {
     $Results += [PSCustomObject]@{
         Check = "Windows Defender Status"
-        Status = "FAIL"
+        Status = "FAIL" 
         Details = "Windows Defender status is unavailable"
     }
 }
@@ -152,20 +154,15 @@ catch {
 #Output to Screen
 $Results | Format-Table -AutoSize
 
-#Save detailed Report to txt abd csv for further analysis
 
-$TxtReport = "$ReportFolder\SecurityCheckReport_$TimeStamp.txt"
-$CsvReport = "$ReportFolder\SecurityCheckReport_$TimeStamp.csv"
+"Security Check Report - $env:COMPUTERNAME" | Out-File -FilePath $SvrRptTxt
+"Generated on: $(Get-Date)" | Out-File -FilePath $SvrRptTxt -Append
 
-"Security Check Report - $env:COMPUTERNAME" | Out-File -FilePath $TxtReport
-"Generated on: $(Get-Date)" | Out-File -FilePath $TxtReport -Append
+$Results | Format-Table -AutoSize | Out-File -FilePath $SvrRptTxt -Append
 
-
-$Results | Format-Table -AutoSize | Out-File -FilePath $TxtReport -Append
-
-$Results | Export-Csv -Path $CsvReport -NoTypeInformation
+$Results | Export-Csv -Path $SvrRptCsv -NoTypeInformation
 
 #--On page Update--#
-Write-host "`nReports saved to:"
-Write-host "TXT: $TxtReport"
-Write-host "CSV: $CsvReport"
+Write-host "`nReports saved to:" -ForegroundColor Green
+Write-host "TXT: $SvrRptTxt" -ForegroundColor Yellow
+Write-host "CSV: $SvrRptCsv" -ForegroundColor Yellow

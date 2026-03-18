@@ -1,23 +1,71 @@
-#This will generate a report of the health as a csv file that can be used for further analysis.
+#This will generate a health report and save as a csv and txt file.
 
 $os = Get-CimInstance -Class Win32_OperatingSystem 
 $computerSystem = Get-CimInstance -Class Win32_ComputerSystem
+$cpu = Get-CimInstance -Class Win32_Processor
+$memory = Get-CimInstance -Class Win32_PhysicalMemory
 $disk = Get-CimInstance -Class Win32_LogicalDisk -Filter "DeviceID='C:'"
 
 $lastboot = $os.LastBootUpTime
 $uptime = (Get-Date) - $lastboot
 
-$report = [PSCustomObject]@{
-    ComputerName = $computerSystem.Name
-    OperatingSystem = "$($os.Caption) $($os.OSArchitecture)"
-    OSVersion = $os.Version
-    LastBootTime = $os.LastBootUpTime
-    Uptime = "$($uptime.Days) days, $($uptime.Hours) hours, $($uptime.Minutes) minutes"
-    FreeMemoryGB = $freeMemory
-    UsedMemoryGB = $usedMemory
-    TotalMemoryGB = $totalMemory
-    FreeDiskGB = $freeDisk
-    UsedDiskGB = $usedDisk
-    TotalDiskGB = $totalDisk
-    CPULoadPercentage = $cpuLoad
-} |Export-Csv -Path "ServerHealthReport.csv" -NoTypeInformation
+$totalMemory = [math]::round(($memory.Capacity | Measure-Object -Sum).Sum / 1GB, 2)
+$freeMemory = [math]::round(($os.FreePhysicalMemory / 1MB), 2)
+$usedMemory = [math]::round($totalMemory - $freeMemory, 2)
+
+$totalDisk = [math]::round(($disk.Size | Measure-Object -Sum).Sum / 1GB, 2)
+$freeDisk = [math]::round(($disk.FreeSpace | Measure-Object -Sum).Sum / 1GB, 2)
+$usedDisk = [math]::round($totalDisk - $freeDisk, 2)
+
+$cpuLoad = $cpu.LoadPercentage
+
+#Creates the report folder if it doesn't exist
+$ReportFolder = ".\ServerHealthReports"
+if (-not (Test-Path $ReportFolder)) {     
+    New-Item -Path $ReportFolder -ItemType Directory -Force | Out-Null
+}
+
+Write-Host "Computer Name: $($computerSystem.Name)"
+Write-Host "Operating System: $($os.Caption) $($os.OSArchitecture)"
+Write-Host "OS Version: $($os.Version)"
+Write-Host "last Boot Time: $($os.LastBootUpTime)"
+Write-Host "Uptime: $($uptime.Days) days, $($uptime.Hours) hours, $($uptime.Minutes) minutes"
+Write-Host ""
+Write-Host "Memory Status:"
+Write-Host "  Free: $freeMemory GB"
+Write-Host "  Used: $usedMemory GB"
+Write-Host "  Total: $totalMemory GB"
+Write-Host ""
+Write-Host "Disk Status (C:):"
+Write-Host "  Free: $freeDisk GB"
+Write-Host "  Used: $usedDisk GB"
+Write-Host "  Total: $totalDisk GB"
+Write-Host ""
+Write-Host "CPU: $($cpu.Name)"
+Write-Host "CPU Load: $($cpu.LoadPercentage)%"
+
+if ($memoryUsagePercentage -gt 90) {
+    Write-Host "Warning: Memory usage is above 90%!" -ForegroundColor Red
+}
+else {
+    Write-Host "Healthy: Memory usage is within normal limits." -ForegroundColor Green
+}
+if ($diskUsagePercentage -gt 90) {
+    Write-Host "Warning: Disk usage is above 90%!" -ForegroundColor Red
+}
+else {
+    Write-Host "Healthy: Disk usage is within normal limits." -ForegroundColor Green
+}
+
+
+"Server Health Report - $env:COMPUTERNAME" | Out-File -FilePath $TxtReport
+"Generated on: $(Get-Date)" | Out-File -FilePath $TxtReport -Append
+
+$Results | Format-Table -AutoSize | Out-File -FilePath $TxtReport -Append
+
+$Results | Export-Csv -Path $CsvReport -NoTypeInformation
+
+#--On page Update--#
+Write-host "`nReports saved to:"
+Write-host "TXT: $TxtReport"
+Write-host "CSV: $CsvReport"
