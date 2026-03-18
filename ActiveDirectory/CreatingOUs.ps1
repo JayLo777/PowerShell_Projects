@@ -15,3 +15,4 @@ Get-ADOrganizationalUnit -Filter 'Name -eq "San Diego"'  #<filters the OUs to fi
 
 
 
+aduserbu
