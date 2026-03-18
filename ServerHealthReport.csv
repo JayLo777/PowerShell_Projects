@@ -1,0 +1,2 @@
+"ComputerName","OperatingSystem","OSVersion","LastBootTime","Uptime","FreeMemoryGB","UsedMemoryGB","TotalMemoryGB","FreeDiskGB","UsedDiskGB","TotalDiskGB","CPULoadPercentage"
+"LON-CL1","Microsoft Windows 10 Enterprise 64-bit","10.0.19043","3/17/2026 4:24:07 PM","0 days, 16 hours, 57 minutes","1.41","2.59","4","83.08","43.38","126.46","19"
