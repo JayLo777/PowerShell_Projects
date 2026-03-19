@@ -1,7 +1,11 @@
-#Server Health Check script. This version includes error handling, checks for multiple disks, and generates an HTML report.
+#Version 3 of the Server Health Check script. This version includes error handling, checks for multiple disks, and generates an HTML report.
 
 <# Step 1: Accept one or more computer names.
 If no name is provided, use the local computer.#>
+#Enable-PSRemoting -Force allows the script to run on remote computers. 
+
+#Enable-PSRemoting -Force
+
 param(
     [string[]]$ComputerName= $env:COMPUTERNAME,
     [switch]$FromAD,
@@ -29,6 +33,7 @@ $ReportFolder = "C:\ServerHealthReports"
 if (-not (Test-Path -Path $ReportFolder)) {
     New-Item -Path $ReportFolder -ItemType Directory -Force | Out-Null
 }
+
 # Step 4: Loop through each computer in the ComputerName parameter.
 $Results = foreach ($Computer in $ComputerName) {
     try {
@@ -130,41 +135,34 @@ $Results = foreach ($Computer in $ComputerName) {
 #Step 14: Output the results to the console in table.
 $Results | Format-Table -AutoSize
 
-#Step 15: If the Export as csv, txt, html. 
-$CsvReportPath = Join-Path -Path $ReportFolder -ChildPath "ServerHealthReport.csv"
-$TxtReportPath = Join-Path -Path $ReportFolder -ChildPath "ServerHealthReport.txt"
-
-$Results | Export-Csv -Path $CsvReportPath -NoTypeInformation -Encoding UTF8 
-$Results | Out-File -FilePath $TxtReportPath -Encoding UTF8 
-
-<#----------------------Need to fix the HTML report generation-------------------------#>
-   <# [PSCustomObject]@{
-        Name = "Server Health Check Report"
-        Status = "PASS"
-    }   | ConverTo-Html | Out-File $Report .\ServerHealthReport.html
-        Start-Process .\ServerHealthReport.html
-
-if ($ExportHtml) {
-    $HtmlReportPath = Join-Path -Path $ReportFolder -ChildPath "ServerHealthReport.html"
-    
-    $style = @"
-        <style>
-            body { font-family: Arial, sans-serif; }
-            table { border-collapse: collapse; width: 100%; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            th { background-color: #f2f2f2; }
-            tr:hover { background-color: #f5f5f5; }
-        </style>
-"@
-        $PreContent = "<h1>Server Health Check Report</h1><p>Generated: $(Get-Date)</p>"
-    
-        $Results | ConvertTo-Html -Head $style -PreContent $PreContent -Title "Server Health Report" | `
-                 Out-File -FilePath $HtmlReportPath
-        
-        Write-Host "HTML Report: $HtmlReportPath" -ForegroundColor Green 
-}
-#>
+Write-Host "Computer Name: $($computerSystem.Name)"
+Write-Host "Operating System: $($os.Caption) $($os.OSArchitecture)"
+Write-Host "OS Version: $($os.Version)"
+Write-Host "last Boot Time: $($os.LastBootUpTime)"
+Write-Host "Uptime: $($uptime.Days) days, $($uptime.Hours) hours, $($uptime.Minutes) minutes"
 Write-Host ""
-Write-Host "Reports generated successfully:" -ForegroundColor Green
-Write-Host "CSV Report: $CsvReportPath" -ForegroundColor Green
-Write-Host "TXT Report: $TxtReportPath" -ForegroundColor Green
+Write-Host "Memory Status:"
+Write-Host "  Free: $freeMemory GB"
+Write-Host "  Used: $usedMemory GB"
+Write-Host "  Total: $totalMemory GB"
+Write-Host ""
+Write-Host "Disk Status (C:):"
+Write-Host "  Free: $freeDisk GB"
+Write-Host "  Used: $usedDisk GB"
+Write-Host "  Total: $totalDisk GB"
+Write-Host ""
+Write-Host "CPU: $($cpu.Name)"
+Write-Host "CPU Load: $($cpu.LoadPercentage)%"
+
+if ($memoryUsagePercentage -gt 90) {
+    Write-Host "Warning: Memory usage is above 90%!" -ForegroundColor Red
+}
+else {
+    Write-Host "Healthy: Memory usage is within normal limits." -ForegroundColor Green
+}
+if ($diskUsagePercentage -gt 90) {
+    Write-Host "Warning: Disk usage is above 90%!" -ForegroundColor Red
+}
+else {
+    Write-Host "Healthy: Disk usage is within normal limits." -ForegroundColor Green
+}

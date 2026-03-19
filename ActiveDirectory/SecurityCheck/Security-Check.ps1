@@ -153,3 +153,9 @@ catch {
 
 #Output to Screen
 $Results | Format-Table -AutoSize 
+
+<#----Update Later with write-host and color coding for pass, warning, fail----
+if ($UAC.EnableLUA -eq -1) {
+    Write-Host "$UAC is disabled." -ForegroundColor Red
+}
+    #>

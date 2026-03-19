@@ -20,7 +20,7 @@ $usedDisk  =  [math]::round($totalDisk - $freeDisk, 2)
 $cpuLoad = $cpu.LoadPercentage
 
 #Creates the report folder if it doesn't exist
-$ReportFolder = ".\ServerHealthReports"
+$ReportFolder = "C:\ServerHealthReports"
 if (-not (Test-Path $ReportFolder)) {     
     New-Item -Path $ReportFolder -ItemType Directory -Force | Out-Null
 }
