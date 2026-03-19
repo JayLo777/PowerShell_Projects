@@ -1,23 +1,34 @@
-#Update to ServerHealthCheckToolVer2
+<#Update to ServerHealthCheckToolVer2
+DESCRIPTION
+This script collects health information from one or more computers and creates a quick operational snapshot.
+It checks the operating system, uptime, memory usage, and local disk space so an administrator can determine
+if the server appears healthy or needs attention.#>
+
+# Accept one or more computer names.
+# If no name is provided, use the local computer.
 
 param(
     [string[]]$ComputerName = $env:COMPUTERNAME
 )       
-# Threshold values for CPU and Memory usage
+#Define thresholds used to determine PASS, WARNING, or FAIL.
+
 $DiskWarningThreshold = 20
 $DiskFailPercentage = 10
 $MemoryWarningGB = 2
 $UptimeWarningDays = 30
 
-# Create a report folder if need
+#Create a report folder if it does not already exist.
+
 $ReportFolder = "C:\ServerHealthCheckReports"
 if (-not (Test-Path -Path $ReportFolder)) {
     New-Item -Path $ReportFolder -ItemType Directory -Force | Out-Null
 }
 
+# Loop through each computer in the ComputerName parameter.
 $Results = foreach ($Computer in $ComputerName) {
-    $target = if ([string]::IsNullOrWhiteSpace($Computer)) { $env:COMPUTERNAME } else { $Computer.Trim() }
 
+    $target = if ([string]::IsNullOrWhiteSpace($Computer)) { $env:COMPUTERNAME } else { $Computer.Trim() }
+  # Use try/catch so minimize the chance of the entire script failing.
     try {
         $isLocal = @($env:COMPUTERNAME, 'localhost', '.') -contains $target
 
@@ -54,6 +65,8 @@ $Results = foreach ($Computer in $ComputerName) {
             $UptimeStatus = "Healthy: Uptime is within normal limits."       
         }
         if (-not $disks) {
+            #Create a custom object for clean structured output.
+
             [PSCustomObject]@{
                 ComputerName = $ComputerSystem.Name
                 OSName = $os.Caption
@@ -97,6 +110,7 @@ $Results = foreach ($Computer in $ComputerName) {
                 else {
                     $DiskStatus = "Healthy: Free Disk space is within normal limits."
                 }
+                #Create a custom object for clean structured output.
                 [PSCustomObject]@{
                     ComputerName = $ComputerSystem.Name
                     OSName = $os.Caption
@@ -118,6 +132,7 @@ $Results = foreach ($Computer in $ComputerName) {
                 }
         }
 }
+            #If data collection fails, return a FAIL result with N/A values.
     catch {
         [PSCustomObject]@{
                 ComputerName = $target
@@ -141,5 +156,67 @@ $Results = foreach ($Computer in $ComputerName) {
         }
     }   
 }
-#Display the results on Screen
+#Display the results on Screen as a table.
 $Results | Format-Table -AutoSize
+
+#Export the results to CSV and TXT reports.
+$CsvPath = Join-Path -Path $ReportFolder -ChildPath "ServerHealthReport.csv"
+$TxtPath = Join-Path -Path $ReportFolder -ChildPath "ServerHealthReport.txt"
+
+$Results | Export-Csv -Path $CsvPath -NoTypeInformation
+$Results | Out-File -FilePath $TxtPath
+
+#Run the results to HTML.
+if ($ExportHtml) {
+    $HtmlPath = Join-Path -Path $ReportFolder -ChildPath "ServerHealthReport.html"
+
+    $HtmlHead = @"
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background-color: #f4f6f8;
+    }
+    h1 {
+        color: #1f4e79;
+    }
+    h2 {
+        color: #2f75b5;
+    }
+    table {
+        border-collapse: collapse;
+        width: 100%;
+        background-color: white;
+    }
+    th, td {
+        border: 1px solid #d9d9d9;
+        padding: 8px;
+        text-align: left;
+    }
+    th {
+        background-color: #1f4e79;
+        color: white;
+    }
+    tr:nth-child(even) {
+        background-color: #f2f2f2;
+    }
+</style>
+"@
+
+    $PreContent = @"
+<h1>Server Health Check Report</h1>
+<p><strong>Generated:</strong> $(Get-Date)</p>
+<p><strong>Computers Checked:</strong> $($ComputerName -join ', ')</p>
+"@
+
+    $Results |
+        ConvertTo-Html -Head $HtmlHead -PreContent $PreContent -Title "Server Health Report" |
+        Out-File -FilePath $HtmlPath
+
+    Write-Host "HTML: $HtmlPath"
+}
+
+Write-Host ""
+Write-Host "Reports saved to:" -ForegroundColor Green
+Write-Host "CSV: $CsvPath"
+Write-Host "TXT: $TxtPath"

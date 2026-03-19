@@ -166,3 +166,65 @@ $Results | Export-Csv -Path $SvrRptCsv -NoTypeInformation
 Write-host "`nReports saved to:" -ForegroundColor Green
 Write-host "TXT: $SvrRptTxt" -ForegroundColor Yellow
 Write-host "CSV: $SvrRptCsv" -ForegroundColor Yellow
+
+#Export the results to CSV and TXT reports.
+$CsvPath = Join-Path -Path $ReportFolder -ChildPath "Security Check.csv"
+$TxtPath = Join-Path -Path $ReportFolder -ChildPath "Security Check.txt"
+
+$Results | Export-Csv -Path $CsvPath -NoTypeInformation
+$Results | Out-File -FilePath $TxtPath
+
+#Run the results to HTML.
+if ($ExportHtml) {
+    $HtmlPath = Join-Path -Path $ReportFolder -ChildPath "Security Check.html"
+
+    $HtmlHead = @"
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background-color: #f4f6f8;
+    }
+    h1 {
+        color: #1f4e79;
+    }
+    h2 {
+        color: #2f75b5;
+    }
+    table {
+        border-collapse: collapse;
+        width: 100%;
+        background-color: white;
+    }
+    th, td {
+        border: 1px solid #d9d9d9;
+        padding: 8px;
+        text-align: left;
+    }
+    th {
+        background-color: #1f4e79;
+        color: white;
+    }
+    tr:nth-child(even) {
+        background-color: #f2f2f2;
+    }
+</style>
+"@
+
+    $PreContent = @"
+<h1>Security Check Report</h1>
+<p><strong>Generated:</strong> $(Get-Date)</p>
+<p><strong>Computers Checked:</strong> $($ComputerName -join ', ')</p>
+"@
+
+    $Results |
+        ConvertTo-Html -Head $HtmlHead -PreContent $PreContent -Title "Security Check Report" |
+        Out-File -FilePath $HtmlPath
+
+    Write-Host "HTML: $HtmlPath"
+}
+
+Write-Host ""
+Write-Host "Reports saved to:" -ForegroundColor Green
+Write-Host "CSV: $CsvPath"
+Write-Host "TXT: $TxtPath"

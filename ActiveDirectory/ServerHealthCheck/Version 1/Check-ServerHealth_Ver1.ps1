@@ -1,6 +1,6 @@
-#This will generate a health report and save as a csv and txt file.
+#<The Script will provide a snapshot of the health of a server and return the results. 
 
-$os = Get-CimInstance Win32_OperatingSystem 
+$os = Get-CimInstance -Class Win32_OperatingSystem 
 $computerSystem = Get-CimInstance -Class Win32_ComputerSystem
 $cpu = Get-CimInstance -Class Win32_Processor
 $memory = Get-CimInstance -Class Win32_PhysicalMemory
@@ -56,22 +56,57 @@ if ($diskUsagePercentage -gt 90) {
 else {
     Write-Host "Healthy: Disk usage is within normal limits." -ForegroundColor Green
 }
-   [pscustomobject]@{
-            ComputerName = $Computer
-            OsName = $os.Caption
-            OsVersion = $os.Version
-            FreeMemoryGB = $freeMemory
-            DiskFreeGB = $freeDisk
+
+#Display the results on Screen as a table.
+$Results | Format-Table -AutoSize
+
+#Run the results to HTML.
+
+if ($ExportHtml) {
+    $HtmlPath = Join-Path -Path $ReportFolder -ChildPath "ServerHealthReport.html"
+
+    $HtmlHead = @"
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background-color: #f4f6f8;
+    }
+    h1 {
+        color: #1f4e79;
+    }
+    h2 {
+        color: #2f75b5;
+    }
+    table {
+        border-collapse: collapse;
+        width: 100%;
+        background-color: white;
+    }
+    th, td {
+        border: 1px solid #d9d9d9;
+        padding: 8px;
+        text-align: left;
+    }
+    th {
+        background-color: #1f4e79;
+        color: white;
+    }
+    tr:nth-child(even) {
+        background-color: #f2f2f2;
+    }
+</style>
+"@
+
+    $PreContent = @"
+<h1>Server Health Check Report</h1>
+<p><strong>Generated:</strong> $(Get-Date)</p>
+<p><strong>Computers Checked:</strong> $($ComputerName -join ', ')</p>
+"@
+
+    $Results |
+        ConvertTo-Html -Head $HtmlHead -PreContent $PreContent -Title "Server Health Report" |
+        Out-File -FilePath $HtmlPath
+
+    Write-Host "HTML: $HtmlPath"
 }
-   
-"Server Health Report - $env:COMPUTERNAME" | Out-File -FilePath $TxtReport
-"Generated on: $(Get-Date)" | Out-File -FilePath $TxtReport -Append
-
-$Results | Format-Table -AutoSize | Out-File -F ilePath $TxtReport -Append
-                                                    
-$Results | Export-Csv -Path $CsvReport -NoTypeInformation
-
-#--On page Update--#
-Write-host "`nReports saved to:"
-Write-host "TXT: $TxtReport"
-Write-host "CSV: $CsvReport"
