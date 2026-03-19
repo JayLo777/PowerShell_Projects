@@ -155,14 +155,19 @@ Write-Host "CPU: $($cpu.Name)"
 Write-Host "CPU Load: $($cpu.LoadPercentage)%"
 
 if ($memoryUsagePercentage -gt 90) {
-    Write-Host "Warning: Memory usage is above 90%!" -ForegroundColor Red
+    Write-Host "Fail: Disk usage is Critcally High 90%!" -ForegroundColor Red
+    $DiskStatus = "Fail: Disk usage is Critcally High!"   
+}
+elseif ($DiskFailPercentage -ge 80) {
+    Write-Host "Warning: Disk usage is High 80%!" -ForegroundColor Yellow
+    $DiskStatus = "Warning: Disk usage is High!"   
 }
 else {
-    Write-Host "Healthy: Memory usage is within normal limits." -ForegroundColor Green
+    Write-Host "PASS: Memory Healthy." -ForegroundColor Green
 }
 if ($diskUsagePercentage -gt 90) {
     Write-Host "Warning: Disk usage is above 90%!" -ForegroundColor Red
 }
 else {
-    Write-Host "Healthy: Disk usage is within normal limits." -ForegroundColor Green
+    Write-Host "PASS: Disk usage is within normal limits." -ForegroundColor Green
 }
