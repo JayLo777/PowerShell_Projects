@@ -1,6 +1,26 @@
-#Routine Check Security Check Report
+<#Routine Check Security Check Report
+This PowerShell script performs a basic security health 
+check on a Windows computer. It checks:
 
+Local administrator accounts
+Firewall status
+Antivirus status
+Windows Defender status
+User Account Control (UAC)
+
+Then it:
+Shows the results on the screen
+Saves the results to a TXT file
+Saves the results to a CSV file
+Has an option to create an HTML report 
+
+Translated in Avaition language 
+Think of it like a pre-flight inspection for a computer.
+In aviation, before a flight, you inspect critical systems to make sure the aircraft is safe.
+This script does the same thing for a Windows system by checking important security controls.
+#>
 #-----Routine Admin Accounts Check-----#
+
 $TimeStamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
 $ReportFolder = ".\SecurityCheckReports"
 $SvrRptTxt = "$ReportFolder\SecurityCheckReport_$TimeStamp.txt"
@@ -41,7 +61,7 @@ catch {
 }
 
 
-#Firewall Checks
+#Using Try-Catch for more reliable error handling
 try {
     $FirewallProfile = Get-NetFirewallProfile
     $DisabledProfiles = $FirewallProfile | Where-Object { $_.Enabled -eq $false }

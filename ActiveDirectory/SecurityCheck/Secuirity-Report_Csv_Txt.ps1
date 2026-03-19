@@ -77,7 +77,7 @@ try {
         $Results += [PSCustomObject]@{
             Check = "Antivirus Status"
             Status = "PASS"
-            Details = "$Antivirus product detected: $($Antivirus.displayName)"
+            Details = "$Antivirus product detected: $($Antivirus.displayName -join ',')"
 
         }
     } 
@@ -175,7 +175,7 @@ $Results | Export-Csv -Path $CsvPath -NoTypeInformation
 $Results | Out-File -FilePath $TxtPath
 
 #Run the results to HTML.
-if ($ExportHtml) {
+if ($ExportHtml -$true) {
     $HtmlPath = Join-Path -Path $ReportFolder -ChildPath "Security Check.html"
 
     $HtmlHead = @"
@@ -214,7 +214,7 @@ if ($ExportHtml) {
     $PreContent = @"
 <h1>Security Check Report</h1>
 <p><strong>Generated:</strong> $(Get-Date)</p>
-<p><strong>Computers Checked:</strong> $($ComputerName -join ', ')</p>
+<p><strong>Computers Checked:</strong> $ComputerName -join ', ')</p>
 "@
 
     $Results |
