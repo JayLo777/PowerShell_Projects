@@ -1,0 +1,41 @@
+# Pro-Install Challenge: Using PowerShell Remoting and Jobs
+
+Invoke-Command -ScriptBlock { Get-NetAdapter -Physical } -ComputerName LON-DC1,LON-SVR1 -AsJob -JobName RemoteNetAdapt 
+
+Invoke-Command -ScriptBlock { Get-SMBShare } -ComputerName LON-DC1,LON-SVR1 -AsJob -JobName RemoteShares 
+
+Enable-PSRemoting -SkipNetworkProfileCheck -Force
+Invoke-Command -ScriptBlock { Get-CimInstance -ClassName Win32_Volume } -ComputerName (Get-ADComputer -Filter * | Select -Expand Name) -AsJob -JobName RemoteDisks
+#need to enable PowerShell Remoting on LON-CL1 in order to connect to it by using PowerShell Remoting
+
+#Starts Job 
+Start-Job -ScriptBlock { Get-EventLog -LogName Security } -Name LocalSecurity
+
+Start-Job -ScriptBlock { 1..100 | ForEach-Object { Dir C:\ -Recurse } } -Name LocalDir 
+#this will take a while, but it will show the power of jobs and remoting together
+
+Get-Job 
+
+Get-Job -Name Remote*
+
+Stop-Job -Name LocalDir
+
+Receive-Job -Name RemoteNetAdapt
+
+Get-Job -Name RemoteDisks -IncludeChildJob | Receive-Job
+
+$option = New-ScheduledJobOption -WakeToRun -RunElevated
+
+$trigger1 = New-JobTrigger -Once -At (Get-Date).AddMinutes(5)
+
+Register-ScheduledJob -ScheduledJobOption $option `
+-Trigger $trigger1 `
+-ScriptBlock { Get-EventLog -LogName Security } `
+-Name LocalSecurityLog
+
+Get-ScheduledJob -Name LocalSecurityLog | 
+Select -Expand JobTriggers Command
+
+Get-Job
+
+Receive-Job -Name LocalSecurityLog
